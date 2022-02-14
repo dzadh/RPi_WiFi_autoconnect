@@ -133,8 +133,8 @@ def ThreadLoop():
                                     #Create connection file wor wpa
                                     text = "network={\n"
                                     text+="""ssid="{}"
-                                psk="{}"
-                                key_mgmt=WPA-PSK""".format(ssid,pas)
+                                    psk="{}"
+                                    key_mgmt=WPA-PSK""".format(ssid,pas)
                                     text+="\n}"
                                     text_file = open("wpa_supplicant_auto.conf", "w")
                                     n = text_file.write(text)
