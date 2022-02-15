@@ -160,16 +160,15 @@ def ThreadLoop():
                                     continue_search = not is_connected()
                                     last_check_time = time.time()
 
-thread_obj = threading.Thread(target=ThreadLoop)
-thread_obj.start()
 
-# Collect events until released
-with keyboard.Listener(
-        on_press=on_press,
-        on_release=on_release) as listener:
-    listener.join()
+if __name__ == '__main__':
+    thread_obj = threading.Thread(target=ThreadLoop)
+    thread_obj.start()
 
-thread_obj.join()
+    # Collect events until released
+    with keyboard.Listener(
+            on_press=on_press,
+            on_release=on_release) as listener:
+        listener.join()
 
-# if __name__ == '__main__':
-#     print(create_conf_string("singo", """sd'd"""))
+    thread_obj.join()
