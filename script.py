@@ -31,10 +31,10 @@ def edit_wpa_supplicant_file(text):
             else:
                 wpa_file += ('#'+line)
     wpa_file = wpa_file + '\n\n' + text + '\n'
-    wpa_supp = open("wpa_supp.txt", "w")
-    wpa_supp.write(wpa_file)
-    wpa_supp.close()
-
+    # wpa_supp = open("wpa_supp.txt", "w")
+    # wpa_supp.write(wpa_file)
+    # wpa_supp.close()
+    rewrite_file("/etc/wpa_supplicant/wpa_supplicant.conf", wpa_file)
     return wpa_file
 
 
@@ -49,23 +49,28 @@ def edit_dhcpcd_file(conf):
             if "interface wlan0" in line:
                 start = True
                 found = True
-            if start:
-                if "static ip_address" in line:
-                    i = line.find('=')
-                    new_line = line[:i+1] + conf['ip']
-                    dhcpcd_text += new_line
-                elif "static routers" in line:
-                    i = line.find('=')
-                    new_line = line[:i+1] + conf['gateway']
-                    dhcpcd_text += new_line
-                elif "static domain_name_servers" in line:
-                    i = line.find('=')
-                    new_line = line[:i+1] + conf['dns']
-                    dhcpcd_text += new_line
-                elif "interface" in line:
-                    start = False
-                    dhcpcd_text += line
-            else:
+                print("found : ", found)
+        # print("start : ",start)
+        if start:
+            if "static ip_address" in line:
+                i = line.find('=')
+                new_line = line[:i+1] + conf['ip'] + '\n'
+                dhcpcd_text += new_line
+                print(new_line)
+            elif "static routers" in line:
+                i = line.find('=')
+                new_line = line[:i+1] + conf['gateway'] + '\n'
+                dhcpcd_text += new_line
+                print(new_line)
+            elif "static domain_name_servers" in line:
+                i = line.find('=')
+                new_line = line[:i+1] + conf['dns'] + '\n'
+                dhcpcd_text += new_line
+                print(new_line)
+            elif "interface wlan0" in line:
+                dhcpcd_text += line
+            elif "interface eth0" in line:
+                start = False
                 dhcpcd_text += line
         else:
             dhcpcd_text += line
@@ -73,8 +78,9 @@ def edit_dhcpcd_file(conf):
         dhcp_conf = """interface wlan0\nstatic ip_address={}\nstatic routers={}\nstatic domain_name_servers={}""".format(conf['ip'],conf['gateway'],conf['dns'])
         dhcpcd_text += dhcp_conf
 
-    dhcpcd = open("dhcpcd.txt", "w")
-    dhcpcd.write(dhcpcd_text)
+    # dhcpcd = open("dhcpcd.txt", "w")
+    # dhcpcd.write(dhcpcd_text)
+    rewrite_file("/etc/dhcpcd.conf", dhcpcd_text)
     return dhcpcd_text
 
 
@@ -97,7 +103,9 @@ def remove_static_conf():
                     pass
                 elif "static domain_name_servers" in line:
                     pass
-                elif "interface" in line:
+                elif "interface wlan0" in line:
+                    pass
+                elif "interface eth0" in line:
                     start = False
                     dhcpcd_text += line
             else:
@@ -107,6 +115,9 @@ def remove_static_conf():
     if not found:
         pass
 
+    # dhcpcd = open("dhcpcd.txt", "w")
+    # dhcpcd.write(dhcpcd_text)
+    rewrite_file("/etc/dhcpcd.conf", dhcpcd_text)
     return dhcpcd_text
 
 
