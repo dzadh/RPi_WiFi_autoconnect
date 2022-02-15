@@ -1,3 +1,5 @@
+import json
+
 import cv2 #OpenCV in my opinion best library for work with camera
 from pyzbar.pyzbar import decode #Zbar - best opensource library for work with QRcode. OpenCV also can it, but not in every build.
 import socket
@@ -73,6 +75,9 @@ def on_release(key):
         # Stop listener
         return False
 
+def create_conf_string(ssid, psk):
+    return """network={\n\tssid="%s"\n\tscan_ssid=1\n\tpsk="%s"\n\tkey_mgmt=WPA-PSK\n}""" % (ssid, psk)
+
 def ThreadLoop():
     while not is_stop:
         init_key = read_init_key_file("")
@@ -119,34 +124,27 @@ def ThreadLoop():
                         if time.time()-timestamp>20:
                             data = decode(image) #Search for codes
                             if len(data) > 0:
-                                #Parse classical QRCode structure for WiFi connection
-                                s = data[0].data.decode("utf-8").split(';')
-                                pas = ''
-                                ssid = ''
-                                for i in s:
-                                    if len(i)>0:
-                                        if i[0]=='P':
-                                            pas = i[2:]
-                                        if i[0]=='S':
-                                            ssid= i[2:]
-                                if pas!='' and ssid!='':
-                                    #Create connection file wor wpa
-                                    text = "network={\n"
-                                    text+="""ssid="{}"
-                                    psk="{}"
-                                    key_mgmt=WPA-PSK""".format(ssid,pas)
-                                    text+="\n}"
-                                    text_file = open("wpa_supplicant_auto.conf", "w")
-                                    n = text_file.write(text)
-                                    text_file.close()
-                                    if Platform=='RPiOS' or Platform=='UNIX':
-                                        script.reconnect("wpa_supplicant_auto.conf")
-                                    timestamp=time.time()
+                                qr_string = data[0].data.decode("utf-8")
+                                try:
+                                    wifi_conf = json.loads(qr_string)
+                                    print(wifi_conf)
+                                    ssid = wifi_conf['ssid']
+                                    pas = wifi_conf['psk']
                                     print("Detected! -> ssid: " + ssid + ', pass: ' + pas)
+                                    script.edit_wpa_supplicant_file(create_conf_string(ssid,pas))
+                                    if 'static' in wifi_conf.keys():
+                                        print(wifi_conf['static'])
+                                        script.edit_dhcpcd_file(json.dumps(wifi_conf['static']))
+                                    else:
+                                        print("DHCP")
+                                    script.reconnect()
                                     set_init_key_file("", "0")
                                     cap.release()
                                     cv2.destroyAllWindows()
                                     break
+                                except Exception as e:
+                                    print(e, "\nInvalid QR Code")
+                                    # raise TypeError("Invalid QR Code")
                             else:
                                 print("NotFound")
                         else:
@@ -172,3 +170,6 @@ with keyboard.Listener(
     listener.join()
 
 thread_obj.join()
+
+# if __name__ == '__main__':
+#     print(create_conf_string("singo", """sd'd"""))

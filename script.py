@@ -1,17 +1,16 @@
 import os
 
-def reconnect(adress):
+
+def reconnect():
     command = "sudo dhclient -r"
     os.system(command)
     command = "sudo killall wpa_supplicant"
     os.system(command)
     command = "sudo ifconfig wlan0 up"
     os.system(command)
-    command = "sudo wpa_supplicant -B -i wlan0 -c " + adress
+    command = "sudo wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf"
     os.system(command)
     command = "sudo dhclient -v wlan0"
-    os.system(command)
-    command = "echo " + adress + ">> wpa_supp.txt"
     os.system(command)
 
 
@@ -31,7 +30,11 @@ def edit_wpa_supplicant_file(text):
                 wpa_file += line
             else:
                 wpa_file += ('#'+line)
-    wpa_file += text
+    wpa_file = wpa_file + '\n\n' + text + '\n'
+    wpa_supp = open("wpa_supp.txt", "w")
+    wpa_supp.write(wpa_file)
+    wpa_supp.close()
+
     return wpa_file
 
 
@@ -46,7 +49,6 @@ def edit_dhcpcd_file(conf):
             if "interface wlan0" in line:
                 start = True
                 found = True
-
             if start:
                 if "static ip_address" in line:
                     i = line.find('=')
@@ -71,7 +73,42 @@ def edit_dhcpcd_file(conf):
         dhcp_conf = """interface wlan0\nstatic ip_address={}\nstatic routers={}\nstatic domain_name_servers={}""".format(conf['ip'],conf['gateway'],conf['dns'])
         dhcpcd_text += dhcp_conf
 
+    dhcpcd = open("dhcpcd.txt", "w")
+    dhcpcd.write(dhcpcd_text)
     return dhcpcd_text
+
+
+def remove_static_conf():
+    f = open("/etc/dhcpcd.conf")
+    dhcpcd_text = ""
+    start = False
+    found = False
+    lines = f.readlines()
+    for line in lines:
+        if not line.startswith('#'):
+            if "interface wlan0" in line:
+                start = True
+                found = True
+
+            if start:
+                if "static ip_address" in line:
+                    pass
+                elif "static routers" in line:
+                    pass
+                elif "static domain_name_servers" in line:
+                    pass
+                elif "interface" in line:
+                    start = False
+                    dhcpcd_text += line
+            else:
+                dhcpcd_text += line
+        else:
+            dhcpcd_text += line
+    if not found:
+        pass
+
+    return dhcpcd_text
+
 
 
 def rewrite_file(file_path, text):
